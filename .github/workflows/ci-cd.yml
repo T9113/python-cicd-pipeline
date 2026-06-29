@@ -1,0 +1,31 @@
+name: Python Application CI/CD Pipeline
+
+# Trigger the workflow on every push or pull request to the main branch
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    # Run the pipeline steps on a fresh, isolated hosted Ubuntu runner instance
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out Repository Code
+      uses: actions/checkout@v4
+
+    - name: Set up Python Runtime Environment
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install Application Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Execute Automated Test Suite
+      run: |
+        pytest test_app.py
