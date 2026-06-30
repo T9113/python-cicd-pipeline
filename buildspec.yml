@@ -1,0 +1,26 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.11
+    commands:
+      - echo Installing application dependencies...
+      - python -m pip install --upgrade pip
+      - pip install -r requirements.txt
+
+  pre_build:
+    commands:
+      - echo Executing automated PyTest suite...
+      - pytest test_app.py
+
+  build:
+    commands:
+      - echo Test suite passed successfully! Preparing artifact...
+      - mkdir deploy_package
+      - cp app.py requirements.txt deploy_package/
+
+artifacts:
+  files:
+    - '**/*'
+  base-directory: deploy_package
