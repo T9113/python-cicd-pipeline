@@ -1,24 +1,35 @@
 version: 0.2
 
+env:
+  parameter-store:
+    # Safely pull down your EC2 SSH private key from AWS Parameter Store
+    SSH_KEY: "/prod/ec2/private_key"
+
 phases:
   install:
     runtime-versions:
       python: 3.11
     commands:
-      - echo Upgrading environment packages...
+      - echo Setting up SSH execution context...
+      - mkdir -p ~/.ssh
+      - echo "$SSH_KEY" > ~/.ssh/id_rsa
+      - chmod 600 ~/.ssh/id_rsa
+      - echo "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+      - echo Upgrading local CI testing dependencies...
       - python -m pip install --upgrade pip
       - pip install -r requirements.txt
+
   pre_build:
     commands:
-      - echo Executing PyTest quality validation check...
+      - echo Executing Continuous Integration PyTest suite...
       - pytest test_app.py
+
   build:
     commands:
-      - echo Quality gates passed! Packaging deployment artifacts...
-
-artifacts:
-  files:
-    - app.py
-    - requirements.txt
-    - appspec.yml
-    - scripts/**/*
+      - echo Continuous Integration passed! Initializing Direct CD Deploy to EC2...
+      - echo Deploying files to EC2 via rsync over SSH...
+      # Replace "YOUR_EC2_PUBLIC_IP" with your target instance public IP or public DNS address
+      - rsync -avz -e "ssh -i ~/.ssh/id_rsa" --exclude '.git' ./ ubuntu@YOUR_EC2_PUBLIC_IP:/home/ubuntu/app
+      - echo Triggering server environment refresh...
+      - ssh -i ~/.ssh/id_rsa ubuntu@YOUR_EC2_PUBLIC_IP "chmod +x /home/ubuntu/app/start_server.sh && /home/ubuntu/app/start_server.sh"
+      - echo Deployment Completed successfully!
